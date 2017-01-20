@@ -40,7 +40,7 @@ I also created a suite of specialised SSRS reports that run against the ServiceN
 
 # Personal Projects
 
-## Matchscore
+## MatchScore
 
 MatchScore is a Microsoft Windows WPF desktop application.
 It allows users to plan and execute a pistol competition for a variety of pistol matches.
