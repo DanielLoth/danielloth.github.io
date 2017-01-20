@@ -2,3 +2,5 @@ theme: jekyll-theme-cayman
 
 site:
   title: Daniel Loth
+
+site.title: Test
