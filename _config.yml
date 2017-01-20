@@ -1,8 +1,4 @@
 theme: jekyll-theme-cayman
 
-title: Test2
-
-site:
-  title: Daniel Loth
-
-site.title: Test
+title: Daniel Loth
+show_downloads: true
