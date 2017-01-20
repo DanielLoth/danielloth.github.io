@@ -40,8 +40,6 @@ I also created a suite of specialised SSRS reports that run against the ServiceN
 
 # Personal Projects
 
-The following is a summary of personal projects.
-
 ## Matchscore
 
 MatchScore is a Microsoft Windows WPF desktop application.
