@@ -51,7 +51,7 @@ title: Daniel Loth - .NET software and database developer - MatchScore screensho
 ### Miscellaneous screens
 
 <div class="center">
-  <img src="matchscore-screenshots/label-generation.png" />
+  <img src="matchscore-screenshots/label-generation-screen.png" />
 </div>
 
 ## Report Screenshots
