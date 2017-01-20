@@ -22,10 +22,10 @@ MatchScore is a Microsoft Windows WPF desktop application.
 It allows users to plan and execute a pistol competition for a variety of pistol matches.
 
 The application makes use of the following software technologies:
- - .NET Framework 4.5.1
- - C#
- - Microsoft SQL Server (and the T-SQL dialect of SQL)
- - Entity Framework 6
+- .NET Framework 4.5.1
+- C#
+- Microsoft SQL Server (and the T-SQL dialect of SQL)
+- Entity Framework 6
  
 It also uses a variety of NuGet libraries.
 
