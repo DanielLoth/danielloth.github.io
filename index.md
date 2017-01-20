@@ -29,4 +29,13 @@ The application makes use of the following software technologies:
  
 It also uses a variety of NuGet libraries.
 
-You can view some [MatchScore screenshots here](matchscore-screenshots)
+You can view some [MatchScore screenshots here](matchscore-screenshots).
+
+# Resume
+
+You can view my resume here:
+- [PDF Version](Resume.pdf)
+- [Microsoft Word Version](Resume.docx)
+
+I've omitted my phone number from this version of my resume due to the potentially large audience.
+Please reach out to me via email first and we can go from there!
