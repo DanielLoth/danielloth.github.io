@@ -12,7 +12,28 @@ At a high level these include .NET, C#, and SQL Server. I also work with front-e
   <img src="DanielLoth.png" />
 </div>
 
-# Projects
+# Professional Projects
+
+I've worked with the ACT Government (a municipal/state government in Australia) since 2014.
+I've been involved in the development of numerous web applications, including:
+
+- ACS - A high school student certification system used by the Board of Studies
+- Application Portfolio Management (APM) - A bespoke web application that integrates with ServiceNow and allows users to manage their business applications
+- Numerous other web applications (excursion booking, professional learning calendar, etc)
+- A bespoke data syncronisation application that integrates Avoka Transact Manager smart forms with existing school databases
+
+These web applications make use of the following technology stack:
+
+- The .NET framework (numerous versions)
+- ASP.NET MVC or ASP.NET WebForms
+- ASP.NET Web API
+- Microsoft SQL Server database (2008 R2 and later)
+- Microsoft SQL Server Reporting Services
+- Microsoft Windows Server
+- Internet Information Services (IIS)
+- NCache
+
+# Personal Projects
 
 The following is a summary of personal projects.
 
