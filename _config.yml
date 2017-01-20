@@ -1,4 +1,5 @@
 theme: jekyll-theme-cayman
 
 title: Daniel Loth
-show_downloads: true
+description: .NET web and database developer
+google_analytics: false
