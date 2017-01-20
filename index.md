@@ -22,6 +22,7 @@ MatchScore is a Microsoft Windows WPF desktop application.
 It allows users to plan and execute a pistol competition for a variety of pistol matches.
 
 The application makes use of the following software technologies:
+
 - .NET Framework 4.5.1
 - C#
 - Microsoft SQL Server (and the T-SQL dialect of SQL)
@@ -34,6 +35,7 @@ You can view some [MatchScore screenshots here](matchscore-screenshots).
 # Resume
 
 You can view my resume here:
+
 - [PDF Version](Resume.pdf)
 - [Microsoft Word Version](Resume.docx)
 
