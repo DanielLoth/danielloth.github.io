@@ -18,7 +18,7 @@ I've worked with the ACT Government (a municipal/state government in Australia) 
 I've been involved in the development of numerous web applications, including:
 
 - ACS - A high school student certification system used by the Board of Studies
-- Application Portfolio Management (APM) - A bespoke web application that integrates with ServiceNow and allows users to manage their business applications
+- Application Portfolio Management (APM) - A bespoke AngularJS web application that integrates with ServiceNow and allows users to manage their business applications
 - Numerous other web applications (excursion booking, professional learning calendar, etc)
 - A bespoke data syncronisation application that integrates Avoka Transact Manager smart forms with existing school databases
 
@@ -28,10 +28,15 @@ These web applications make use of the following technology stack:
 - ASP.NET MVC or ASP.NET WebForms
 - ASP.NET Web API
 - Microsoft SQL Server database (2008 R2 and later)
-- Microsoft SQL Server Reporting Services
+- Microsoft SQL Server Reporting Services (SSRS)
 - Microsoft Windows Server
 - Internet Information Services (IIS)
 - NCache
+
+And speaking of ServiceNow, I'm also occasionally involved in the administration of that system.
+This includes occasional integration work (such as the aforementioned APM web application) and 
+report creation for users of the system.
+I also created a suite of specialised SSRS reports that run against the ServiceNow database.
 
 # Personal Projects
 
