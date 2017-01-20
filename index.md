@@ -13,6 +13,9 @@ At a high level these include .NET, C#, and SQL Server. I also work with front-e
 </div>
 
 # Projects
+
+The following is a summary of personal projects.
+
 ## Matchscore
 
 MatchScore is a Microsoft Windows WPF desktop application.
