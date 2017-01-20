@@ -57,6 +57,7 @@ The application makes use of the following software technologies:
 It also uses a variety of NuGet libraries.
 
 You can view some [MatchScore screenshots here](matchscore-screenshots).
+And if you want more insight into what the application does then [click here for the instruction manual](MatchScore-instruction-manual.pdf).
 
 # Resume
 
