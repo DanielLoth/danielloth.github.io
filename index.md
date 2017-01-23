@@ -20,7 +20,7 @@ I've been involved in the development of numerous web applications, including:
 - ACS - A high school student certification system used by the Board of Studies
 - Application Portfolio Management (APM) - A bespoke AngularJS web application that integrates with ServiceNow and allows users to manage their business applications
 - Numerous other web applications (excursion booking, professional learning calendar, etc)
-- A bespoke data syncronisation application that integrates Avoka Transact Manager smart forms with existing school databases
+- A bespoke data synchronisation application that integrates Avoka Transact Manager smart forms with existing school databases
 
 These web applications make use of the following technology stack:
 
