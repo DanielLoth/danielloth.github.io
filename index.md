@@ -59,8 +59,7 @@ And if you want more insight into what the application does then [click here for
 
 You can view my resume here:
 
-- [PDF Version](Resume.pdf)
-- [Microsoft Word Version](Resume.docx)
+- [PDF Version](LOTH Daniel - Resume - 02-Nov-2017.pdf)
 
 I've omitted my phone number from this version of my resume due to the potentially large audience.
 Please reach out to me via email first and we can go from there!
