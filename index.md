@@ -1,16 +1,11 @@
 ---
-title: Daniel Loth - .NET software and database developer
+title: Home
+layout: default
 ---
 
-# Hello world
-Hi, I'm Daniel! I work as a software developer in Australia.
+# Welcome
 
-I specialise in software development using the various Microsoft products.
-At a high level these include .NET, C#, and SQL Server. I also work with front-end technologies such as Angular.
-
-<div class="center">
-  <img src="DanielLoth.png" />
-</div>
+Hi, I'm Daniel! I primarily work on backend systems and relational databases. I currently work at [Xero](https://www.xero.com).
 
 # Professional Projects
 
@@ -54,6 +49,10 @@ The application makes use of the following software technologies:
 
 You can view some [MatchScore screenshots here](matchscore-screenshots).
 And if you want more insight into what the application does then [click here for the instruction manual](MatchScore-instruction-manual.pdf).
+
+# Social stuff
+- [GitHub](https://github.com/DanielLoth)
+- [LinkedIn](https://www.linkedin.com/in/daniel-loth-083b12a2/)
 
 # Resume
 

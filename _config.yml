@@ -1,5 +1,6 @@
-theme: jekyll-theme-cayman
-
+theme: jekyll-theme-hacker
 title: Daniel Loth
-description: .NET software and database developer
+description: Software development and database stuff
 google_analytics: false
+show_downloads: false
+author: Daniel Loth
