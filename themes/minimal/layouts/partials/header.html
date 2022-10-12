@@ -1,0 +1,20 @@
+<header>
+    {{- $currentPage := . }}
+
+    <nav role="main">
+        {{ range site.Menus.main }}
+
+        {{- $menu_item_url := (cond (strings.HasSuffix .URL "/") .URL (printf "%s/" .URL) ) | absLangURL }}
+        {{- $page_url:= $currentPage.Permalink | absLangURL }}
+        {{- $is_search := eq (site.GetPage .KeyName).Layout `search` }}
+
+        <a href="{{ .URL | absLangURL }}" title="{{ .Title | default .Name }}">
+            <span {{- if eq $menu_item_url $page_url }} class="active" {{- end }}>
+                {{- .Pre }}
+                {{- .Name -}}
+                {{ .Post -}}
+            </span>
+        </a>
+        {{ end }}
+    </nav>
+</header>

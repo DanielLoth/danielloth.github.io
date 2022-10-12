@@ -1,0 +1,23 @@
+baseURL = 'http://www.danloth.com/'
+languageCode = 'en'
+title = "Dan's space"
+theme = "Minimal"
+enableRobotsTXT = "true"
+
+[menu]
+  [[menu.main]]
+    name = "Home"
+    url = "/"
+    weight = 10
+  [[menu.main]]
+    name = "About"
+    url = "/about/"
+    weight = 20
+  [[menu.main]]
+    name = "Posts"
+    url = "/posts/"
+    weight = 30
+  [[menu.main]]
+    name = "Tags"
+    url = "/tags/"
+    weight = 40
