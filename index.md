@@ -5,7 +5,7 @@ layout: default
 
 # Welcome
 
-Hi, I'm Daniel! I primarily work on backend systems and relational databases. I currently work at [Xero](https://www.xero.com).
+Hi, I'm Daniel. I primarily work on backend systems and relational databases. I currently work at [Xero](https://www.xero.com).
 
 # Professional Projects
 
@@ -60,4 +60,4 @@ You can view my resume here:
 
 - [PDF Version](https://github.com/Lothy/lothy.github.io/raw/master/LOTH%20Daniel%20-%20Resume%20-%2015-Jan-2018.pdf)
 
-Please reach out to me via email first and we can go from there!
+Please reach out to me via email first and we can go from there.
