@@ -5,37 +5,17 @@ layout: default
 
 # Welcome
 
-Hi, I'm Daniel. I primarily work on backend systems and relational databases. I currently work at [Xero](https://www.xero.com).
+Hi, I'm Daniel. I primarily work on backend systems and relational databases.
 
-# Professional Projects
-
-I've worked with the ACT Government (a municipal/state government in Australia) since 2014.
-I've been involved in the development of numerous web applications, including:
-
-- ACS - A high school student certification system used by the Board of Studies
-- Application Portfolio Management (APM) - A bespoke AngularJS web application that integrates with ServiceNow and allows users to manage their business applications
-- Numerous other web applications (excursion booking, professional learning calendar, etc)
-- A bespoke data synchronisation application that integrates Avoka Transact Manager smart forms with existing school databases
-
-These web applications make use of the following technology stack:
-
-- The .NET framework (numerous versions)
-- ASP.NET MVC or ASP.NET WebForms
-- ASP.NET Web API
-- Microsoft SQL Server database (2008 R2 and later)
-- Microsoft SQL Server Reporting Services (SSRS)
-- Microsoft Windows Server
-- Internet Information Services (IIS)
-- NCache
-
-And speaking of ServiceNow, I'm also occasionally involved in the administration of that system.
-This includes occasional integration work (such as the aforementioned APM web application) and 
-report creation for users of the system.
-I also created a suite of specialised SSRS reports that run against the ServiceNow database.
+I currently work at [Xero](https://www.xero.com), a cloud-native SaaS company that provides accounting software and adjacent products for small businesses.
 
 # Personal Projects
 
-## MatchScore
+## Get-SSMSDiagramCode (2022)
+
+[Get-SSMSDiagramCode](https://github.com/DanielLoth/Get-SSMSDiagramCode) is a PowerShell cmdlet that helps make it easier to keep SQL Server Entity-relationship model diagrams within version control.
+
+## MatchScore (2014)
 
 MatchScore is a Microsoft Windows WPF desktop application.
 It allows users to plan and execute a pistol competition for a variety of pistol matches.
@@ -48,7 +28,7 @@ The application makes use of the following software technologies:
 - Entity Framework 6
 
 You can view some [MatchScore screenshots here](matchscore-screenshots).
-And if you want more insight into what the application does then [click here for the instruction manual](MatchScore-instruction-manual.pdf).
+And if you want more insight into what the application does then take a look at the [MatchScore instruction manual](MatchScore-instruction-manual.pdf).
 
 # Social stuff
 - [GitHub](https://github.com/DanielLoth)
@@ -58,6 +38,4 @@ And if you want more insight into what the application does then [click here for
 
 You can view my resume here:
 
-- [PDF Version](LOTH%20Daniel%20-%20Resume%20-%2018-Oct-2022.pdf)
-
-Please reach out to me via email first and we can go from there.
+- [Resume (PDF version)](LOTH%20Daniel%20-%20Resume%20-%2018-Oct-2022.pdf)
