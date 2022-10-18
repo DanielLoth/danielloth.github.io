@@ -58,6 +58,6 @@ And if you want more insight into what the application does then [click here for
 
 You can view my resume here:
 
-- [PDF Version](https://github.com/Lothy/lothy.github.io/raw/master/LOTH%20Daniel%20-%20Resume%20-%2015-Jan-2018.pdf)
+- [PDF Version](LOTH%20Daniel%20-%20Resume%20-%2018-Oct-2022.pdf)
 
 Please reach out to me via email first and we can go from there.
