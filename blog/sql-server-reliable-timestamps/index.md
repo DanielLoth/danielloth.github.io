@@ -1,0 +1,240 @@
+---
+title: Reliable SQL Server timestamps
+layout: post
+tags: ["SQL Server", "T-SQL", "timestamp", "rowversion"]
+date: "2022-10-18"
+---
+
+Reliable timestamps are a challenge.
+
+If their value is managed in client application code then there's the risk that they are not updated alongside other columns.
+
+For example:
+
+```sql
+UPDATE MyTable
+   SET Column1 = 'Some value',
+       /* UpdatedDtm = GETUTCDATE(), */ /* OMITTED */
+       Column2 = 123
+ WHERE Id = 123;
+```
+
+They might also be essential for the proper functioning of the application.
+
+Lost update anomaly prevention underpinned by a timestamp will only function correctly when the timestamp is reliable.
+
+If the timestamp is unreliable then a change performed by User A might subsequently be clobbered by User B, with User B left blissfully unaware that they've done so.
+
+Consider the following transactions, where User 1 and User 2 both read some data for the same 'thing' and intend to update it.
+
+```sql
+/*
+Transaction #1 at Time #1
+User 1 reads data
+*/
+SELECT Content, UpdatedDtm
+  FROM MyTable
+ WHERE Id = 123;
+
+/*
+Transaction #2 at Time #1
+User 2 reads data
+*/
+SELECT Content, UpdatedDtm
+  FROM MyTable
+ WHERE Id = 123;
+
+/* A few hours later */
+
+/*
+Transaction #3 at Time #2
+
+User 1 saves their changes to the database.
+
+The version of the application that they
+are using contains a bug.
+Unfortunately the timestamp column is not
+updated along with the rest of the columns.
+
+The update succeeds, as no other changes
+have been made.
+The timestamp column still contains the
+old value: '2022-10-18 09:00:00'
+*/
+UPDATE MyTable
+   SET Content = 'Hours of wasted work'
+ WHERE Id = 123
+   AND UpdatedDtm = '2022-10-18 09:00:00';
+
+/*
+Transaction #4 at Time #3
+
+User 2 saves their changes to the database.
+
+User 2 is using an updated version of the
+application.
+The aforementioned bug has been fixed.
+
+The update succeeds, even though it should
+not have.
+
+The lost update anomaly prevention has
+failed due to the aforementioned bug.
+
+User 1's work has been lost.
+*/
+UPDATE MyTable
+   SET Content = 'Something',
+       UpdatedDtm = '2022-10-18 11:30:00'
+ WHERE Id = 123
+   AND UpdatedDtm = '2022-10-18 09:00:00';
+```
+
+Faced with this challenge, many people will reach for triggers as a foolproof solution. And triggers can work.
+
+However, triggers have their own issues.
+
+Perhaps the biggest issue is that they're imperative rather than declarative, and more likely subject to programmer error as a result.
+
+They're also often maligned as a cause of poor database performance. However it's worth noting that this is often due to suboptimal code such as the RBAR (row-by-agonising-row, cursor-based) approach to handling multiple rows.
+
+So let's create an alternative pit of success. We'll do it declaratively using the `ROWVERSION` column type.
+
+Here's the table DDL:
+
+```sql
+CREATE TABLE MyTable (
+  Id INT NOT NULL,
+  Content NVARCHAR(2000) NOT NULL,
+  RVBinary ROWVERSION NOT NULL,
+  RV AS ISNULL(CONVERT(BIGINT, RVBinary), 0) PERSISTED
+);
+```
+
+And that's it.
+
+The `RV` column, a computed column, exists for more convenient interoperability with application code. Working with a value of type `long` in a language like C# is easier than working with a value of type `byte[]` (byte array) of length 8.
+
+The `RV` column is `PERSISTED` so that it exists in the table data on disk, instead of being computed every time the data is read.
+This isn't strictly necessary, but consider that databases are almost always read-heavy. By specifying `PERSISTED` we are choosing to pay the penalty on writes instead of reads.
+
+Finally, the `RV` column definition contains a `CONVERT(...)` invocation wrapped in an `ISNULL(...)` invocation.
+
+We as humans have *a priori* knowledge of the fact that `RV` is a non-null column. We know that `RVBinary` is a non-null column, and that it logically follows that `RV` will also be non-null in this situation.
+
+However SQL Server doesn't know this, and its metadata will indicate that the `RV` column is nullable. The call to `ISNULL(...)` clarifies this, making SQL Server aware of the fact that the column will contain no null values.
+
+Let's talk about drawbacks.
+
+The main drawback here is that we're now dealing with an arbitrary `ROWVERSION` value, instead of a `DATETIME2` value as was used in the original example.
+
+We know that a row with a higher `ROWVERSION` value was modified later than a row with a lower `ROWVERSION` value, but we cannot correlate these arbitrary values with a time of day.
+
+If you need to capture the *date and time* that a record was last updated then consider using both approaches side-by-side.
+
+Use the `ROWVERSION` column (or the computed `RV` column) for the important stuff such as lost update anomaly prevention and anything else requiring robust ordering of row modifications.
+
+Use the perhaps-haphazardly updated `DATETIME2` column for matters concerning the display of information.
+
+## Appendix A: ROWVERSION behaviour repro script
+
+```sql
+USE tempdb;
+SET NOCOUNT ON;
+
+DROP TABLE IF EXISTS MyTable;
+
+CREATE TABLE MyTable (
+  Id INT NOT NULL,
+  Content NVARCHAR(2000) NOT NULL,
+  RVBinary ROWVERSION NOT NULL,
+  RV AS ISNULL(CONVERT(BIGINT, RVBinary), 0) PERSISTED
+);
+
+INSERT INTO MyTable (Id, Content)
+VALUES (1, 'Inserted first'),
+       (2, 'Inserted second');
+
+  SELECT *
+    FROM MyTable
+ORDER BY RV DESC;
+
+UPDATE MyTable
+   SET Content = 'Inserted first - updated'
+ WHERE Id = 1;
+
+  SELECT *
+    FROM MyTable
+ORDER BY RV DESC;
+
+/*
+Results
+
+Id Content                  RVBinary           RV
+-- ------------------------ ------------------ ----
+2  Inserted second          0x00000000000007FF 2047
+1  Inserted first           0x00000000000007FE 2046
+
+Id Content                  RVBinary           RV
+-- ------------------------ ------------------ ----
+1  Inserted first - updated 0x0000000000000801 2049
+2  Inserted second          0x00000000000007FF 2047
+
+*/
+```
+
+## Appendix B: Computed column metadata repro script
+
+```sql
+USE tempdb;
+
+DROP TABLE IF EXISTS MyTableA, MyTableB;
+
+CREATE TABLE MyTableA (
+  Id INT NOT NULL,
+  Content NVARCHAR(2000) NOT NULL,
+  RVBinary ROWVERSION NOT NULL,
+  RV AS CONVERT(BIGINT, RVBinary) PERSISTED
+);
+
+CREATE TABLE MyTableB (
+  Id INT NOT NULL,
+  Content NVARCHAR(2000) NOT NULL,
+  RVBinary ROWVERSION NOT NULL,
+  RV AS ISNULL(CONVERT(BIGINT, RVBinary), 0) PERSISTED
+);
+
+EXEC sp_help 'MyTableA';
+
+EXEC sp_help 'MyTableB';
+
+/*
+Results (abridged)
+
+Name     Owner Type       Created_datetime
+-------- ----- ---------- -----------------------
+MyTableA dbo   user table 2022-10-18 19:08:47.720
+
+Column_name Type      Computed Length Prec Scale Nullable
+----------- --------- -------- ------ ---- ----- --------
+Id          int       no       4      10   0     no
+Content     nvarchar  no       4000              no
+RVBinary    timestamp no       8                 no
+RV          bigint    yes      8      19   0     yes
+
+
+Name     Owner Type       Created_datetime
+-------- ----- ---------- -----------------------
+MyTableB dbo   user table 2022-10-18 19:08:47.720
+
+ 
+ 
+Column_name Type      Computed Length Prec Scale Nullable
+----------- --------- -------- ------ ---- ----- --------
+Id          int       no       4      10   0     no
+Content     nvarchar  no       4000              no
+RVBinary    timestamp no       8                 no
+RV          bigint    yes      8      19   0     no
+
+*/
+```
