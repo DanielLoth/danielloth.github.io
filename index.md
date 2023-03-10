@@ -32,7 +32,7 @@ And if you want more insight into what the application does then take a look at 
 
 # Social stuff
 - [GitHub](https://github.com/DanielLoth)
-- [LinkedIn](https://www.linkedin.com/in/daniel-loth-083b12a2/)
+- [LinkedIn](https://www.linkedin.com/in/daniel-loth/)
 
 # Resume
 
