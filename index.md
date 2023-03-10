@@ -38,4 +38,4 @@ And if you want more insight into what the application does then take a look at 
 
 You can view my resume here:
 
-- [Resume (PDF version) published 10 March 2023](LOTH%20Daniel%20-%20Resume%20-%2010-Mar-2023.pdf)
+- [Resume (PDF version) published 10 March 2023](LOTH-Daniel-Resume.pdf)
