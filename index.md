@@ -36,6 +36,5 @@ And if you want more insight into what the application does then take a look at 
 
 # Resume
 
-You can view my resume here:
-
-- [Resume (PDF version) published 10 March 2023](LOTH-Daniel-Resume.pdf)
+- [Resume (PDF version) published 9 December 2024](LOTH-Daniel-Resume-2024-12-09.pdf)
+- [Resume (EPUB version) published 9 December 2024](LOTH-Daniel-Resume-2024-12-09.epub)
