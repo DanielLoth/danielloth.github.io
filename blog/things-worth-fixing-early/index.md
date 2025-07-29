@@ -35,7 +35,7 @@ Among other things, your acceptable use policy should reserve your right to take
 
 Everybody likely knows someone impacted by a data breach. We've had some large ones in Australia.
 
-- [Medibank hackers announce ‘case closed’ and dump huge data file on dark web](https://www.theguardian.com/australia-news/2022/dec/01/medibank-hackers-announce-case-closed-and-dump-huge-data-file-on-dark-web)
+- [Medibank hackers announce 'case closed' and dump huge data file on dark web](https://www.theguardian.com/australia-news/2022/dec/01/medibank-hackers-announce-case-closed-and-dump-huge-data-file-on-dark-web)
 - [Optus data breach](https://www.acma.gov.au/optus-data-breach)
 - [Latitude data breach](https://www.latitudefinancial.com.au/latitude-cyber-incident/)
 

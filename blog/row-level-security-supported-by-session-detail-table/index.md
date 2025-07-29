@@ -153,7 +153,7 @@ But the most straightforward indication is when we dig into the `SELECT` operato
 
 ![Non-parallel query plan reason is observed to be CouldNotGenerateValidParallelPlan](could-not-generate-parallel-plan.png)
 
-Erik Darling covers this quite well in his blog post [Starting SQL: Why Your SQL Server Query Can’t Go Parallel, Scalar Functions Edition](https://erikdarling.com/starting-sql-why-your-query-cant-go-parallel-scalar-functions-edition/).
+Erik Darling covers this quite well in his blog post [Starting SQL: Why Your SQL Server Query Can't Go Parallel, Scalar Functions Edition](https://erikdarling.com/starting-sql-why-your-query-cant-go-parallel-scalar-functions-edition/).
 
 ## Non-parallel row-level security predicate
 
