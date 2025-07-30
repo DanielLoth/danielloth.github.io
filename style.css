@@ -18,8 +18,8 @@ nav {
 }
 
 h1 {
+    margin-block: 0.67em;
     font-size: 2em;
-    margin-top: 0;
 }
 
 a {
