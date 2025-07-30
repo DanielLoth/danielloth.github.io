@@ -6,7 +6,7 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="author" content="Daniel Loth">
-    <meta name="description" content="Things worth fixing early">
+    <meta name="description" content="Learn what SaaS startups should fix early—covering customer usage patterns, privacy risks, data architecture, sharding, quality assurance, and scalability.">
     <link rel="canonical" href="https://www.danloth.com/blog/things-worth-fixing-early/">
     <link rel="icon" href="/favicon.ico" sizes="any">
     <link rel="manifest" href="/site.webmanifest">
@@ -23,310 +23,322 @@
     </header>
 
     <main>
-        <h1>Things worth fixing early</h1>
+        <article>
+            <header>
+                <small>Published <time datetime="2023-05-14">14 May 2023</time></small>
+                <h1>Things worth fixing early</h1>
+            </header>
 
-        <p>
-            You're in the SaaS business, and business is good. You've got a generous financial runway, paying customers,
-            a compelling vision for the future of your product, and the means to execute.
-        </p>
+            <p>
+                You're in the SaaS business, and business is good. You've got a generous financial runway, paying
+                customers, a compelling vision for the future of your product, and the means to execute.
+            </p>
 
-        <p>
-            So what next?
-        </p>
+            <p>
+                So what next?
+            </p>
 
-        <p>
-            If you're pragmatic then you've no doubt made trade-offs to survive and thrive and get where you are today.
-        </p>
+            <p>
+                If you're pragmatic then you've no doubt made trade-offs to survive and thrive and get where you are
+                today.
+            </p>
 
-        <p>
-            But now that you're satisfied that business is prosperous it might be an opportune time to reflect on how
-            you got to where you are today, and how you'll get to where you're going tomorrow.
-        </p>
+            <p>
+                But now that you're satisfied that business is prosperous it might be an opportune time to reflect on
+                how you got to where you are today, and how you'll get to where you're going tomorrow.
+            </p>
 
-        <p>
-            The ideas I put forward below are based on my time at a major ANZ SaaS tech company.
-        </p>
+            <p>
+                The ideas I put forward below are based on my time at a major ANZ SaaS tech company.
+            </p>
 
-        <h2>Know your customer usage patterns</h2>
+            <h2>Know your customer usage patterns</h2>
 
-        <p>
-            Consider taking a look at aggregate information about your customers. A few things might surprise you.
-        </p>
-        <p>
-            For example, you will have a biggest customer, or several such customers. Call it the
-            <a href="https://en.wikipedia.org/wiki/Pareto_principle">80/20 rule (Pareto principle)</a>
-            or more generally
-            <a href="https://en.wikipedia.org/wiki/Power_law">Power law</a>.
-        </p>
+            <p>
+                Consider taking a look at aggregate information about your customers. A few things might surprise you.
+            </p>
+            <p>
+                For example, you will have a biggest customer, or several such customers. Call it the
+                <a href="https://en.wikipedia.org/wiki/Pareto_principle">80/20 rule (Pareto principle)</a>
+                or more generally
+                <a href="https://en.wikipedia.org/wiki/Power_law">Power law</a>.
+            </p>
 
-        <p>
-            They will have more data than the other 80% of your customers combined. They will be responsible for 80% of
-            requests you serve.
-        </p>
+            <p>
+                They will have more data than the other 80% of your customers combined. They will be responsible for 80%
+                of requests you serve.
+            </p>
 
-        <p>
-            These customers cost more to serve, and might even be known to you if their workloads are sufficiently
-            demanding so as to necessitate incident response (i.e., perhaps you maintain a list of the 'usual
-            suspects').
-        </p>
+            <p>
+                These customers cost more to serve, and might even be known to you if their workloads are sufficiently
+                demanding so as to necessitate incident response (i.e., perhaps you maintain a list of the 'usual
+                suspects').
+            </p>
 
-        <p>
-            You should approach this situation with your eyes wide open. Price your product appropriately, and do your
-            best to stymie exploitative use through measures such as introducing an acceptable use policy. Definitely
-            avoid 'unlimited' style promises to subscribers.
-        </p>
+            <p>
+                You should approach this situation with your eyes wide open. Price your product appropriately, and do
+                your best to stymie exploitative use through measures such as introducing an acceptable use policy.
+                Definitely avoid 'unlimited' style promises to subscribers.
+            </p>
 
-        <p>
-            Among other things, your acceptable use policy should reserve your right to take action via rate limiting
-            and other technology measures deemed necessary to ensure that all of your customers can enjoy a high level
-            of service.
-        </p>
+            <p>
+                Among other things, your acceptable use policy should reserve your right to take action via rate
+                limiting and other technology measures deemed necessary to ensure that all of your customers can enjoy a
+                high level of service.
+            </p>
 
-        <h2>Nip legislative risk around consumer privacy and data sovereignty in the bud</h2>
+            <h2>Nip legislative risk around consumer privacy and data sovereignty in the bud</h2>
 
-        <p>
-            Everybody likely knows someone impacted by a data breach. We've had some large ones in Australia.
-        </p>
+            <p>
+                Everybody likely knows someone impacted by a data breach. We've had some large ones in Australia.
+            </p>
 
-        <ul>
-            <li>
+            <ul>
+                <li>
+                    <a
+                        href="https://www.theguardian.com/australia-news/2022/dec/01/medibank-hackers-announce-case-closed-and-dump-huge-data-file-on-dark-web">
+                        Medibank hackers announce 'case closed' and dump huge data file on dark web
+                    </a>
+                </li>
+                <li>
+                    <a href="https://www.acma.gov.au/optus-data-breach">Optus data breach</a>
+                </li>
+                <li>
+                    <a href="https://www.latitudefinancial.com.au/latitude-cyber-incident/">Latitude data breach</a>
+                </li>
+            </ul>
+
+            <p>
+                Government appetites for intervention, typically via privacy legislation, are only growing.
+            </p>
+
+            <p>
+                The European GDPR legislation was a watershed moment that has caught a great many companies wrongfooted.
+                But it should be considered a beginning rather than an end. Even if you're not within the scope of GDPR
+                specifically, there's nothing stopping other countries introducing comparable legislation. And
+                technically there's no reason that such laws can't be made <em>extraterritorial</em>.
+            </p>
+
+            <p>
+                If you haven't already, you should give thought to how you might satisfy a subscriber's request to have
+                their data deleted. These requests aren't something you can just deflect, and non-compliance tends to
+                attract severe financial penalties.
+            </p>
+
+            <p>
+                Do you have the tools to delete their data? Can you do it within the legislated deadline? Are any
+                backups 'beyond use'? (i.e., backups that are used exclusively for restoration in emergency
+                circumstances, to the exclusion of all other purposes).
+            </p>
+
+            <p>
+                Similarly, data sovereignty is worth being mindful of. If you're relatively new then you might be
+                running your SaaS software out of a single location while allowing sign-ups from anywhere.
+            </p>
+
+            <p>
+                As you grow, consider how you might architect your software so that data belonging to customers in a
+                given jurisdiction can remain in that jurisdiction. You might not have to build it now, but it's worth
+                keeping in mind. The more successful you are, the more interest you'll likely attract from legislators
+                and regulators.
+            </p>
+
+            <h2>Consider how you might horizontally scale your data platform</h2>
+
+            <h3>Sharding</h3>
+
+            <p>
+                With happy subscribers continuing their subscription, and new subscribers signing up all of the time,
+                you'll very likely outgrow your initial database.
+            </p>
+
+            <p>
+                Two scaling approaches are typically proffered:
+            </p>
+
+            <ul>
+                <li>Vertical scaling (use a bigger computer).</li>
+                <li>Horizontal scaling (use more computers).</li>
+            </ul>
+
+            <p>
+                The former is folly long-term because it's cost-prohibitive.
+            </p>
+
+            <p>
+                Some NoSQL products make claims about their scalability. I wouldn't presume to write about these
+                products because I haven't used many of them first-hand. Having said that, many of the claims strike me
+                as dubious.
+                That, or the trade-offs made (in my opinion) aren't the right trade-offs.
+            </p>
+
+            <p>
+                But let's say you are using a relational database product. SQL Server, MariaDB, Postgres. And let's say
+                that you're working with a multi-tenant database (i.e., one database houses data belonging to 1-to-many
+                subscribers).
+            </p>
+
+            <p>
+                The earlier you introduce support for the concept of database sharding, the easier it'll be. The notion,
+                put simply, is that data belonging to Subscribers A and B lives in Database #1, while data belonging to
+                Subscriber C lives in Database #2.
+            </p>
+
+            <p>
+                You don't even need to have an actual second shard to do it. You could simply write your code such that
+                it <em>always</em> examines which subscriber the request belongs to and determines where data for the
+                current request lives <em>before attempting to access</em> that data. Essentially, structuring the code
+                so that it doesn't make assumptions about where a subscriber's data lives.
+            </p>
+
+            <h3>Data architecture</h3>
+
+            <p>
+                There are different schools of thought concerning exactly how data is split up.
+            </p>
+
+            <p>
+                In microservice architectures, microservices often 'own' their data. This means that that you have
+                numerous heterogeneous data stores, with each microservice theoretically exercising exclusive access to
+                that data store.
+            </p>
+
+            <p>
+                In monolithic architectures, you might have a singular application database. It is this singular
+                database that you would horizontally scale, giving you a homogenous fleet of databases.
+            </p>
+
+            <p>
+                I personally lean towards an architecture using a homogenous fleet of databases with the rule that any
+                given subscriber's data lives in <em>exactly one database shard</em> for one simple reason:
+            </p>
+
+            <p>
+                You can atomically transact across the entirety of the subscriber's data, and apply rules and
+                constraints that must hold true across the breadth of data.
+            </p>
+
+            <p>
+                But you also avoid all sorts of problems and challenges:
+            </p>
+
+            <ul>
+                <li>Distributed transactions, and recovering from failure during a distributed transaction.</li>
+                <li>Sagas.</li>
+                <li>Compensating transactions.</li>
+                <li>Answering business analysis questions that span multiple microservices.</li>
+                <li>
+                    Restoring data in a disaster recovery situation, and subsequently having to reconcile restored data
+                    with your other heterogenous databases that did not require restoring (i.e., because losing a
+                    database and restoring it from backup will now mean it's minutes, or hours, behind the others).
+                </li>
+            </ul>
+
+            <h3>Licencing</h3>
+
+            <p>
+                If you're a growing business then licence fees are money out of your pocket.
+            </p>
+
+            <p>
+                In the case of Postgres versus Microsoft SQL Server, the former is $0.29 (USD) per hour in a single node
+                configuration while the latter is $1.044 (USD) per hour for Standard Edition.
+            </p>
+
+            <p>
+                If you use Enterprise Edition then that suddenly goes up to $2.262 (USD) per hour for that same single
+                node.
+            </p>
+
+            <p>
+                So the Microsoft-based solution might cost you anywhere between 3 and 10 times more than the open-source
+                alternative.
+            </p>
+
+            <p>
+                Having said that, Microsoft have historically spruiked the notion of Total Cost of Ownership (TCO).
+                Which is their way of saying 'yes, our software costs you more, but the experience is more refined and
+                you'll save a <em>lot</em> of time not having to integrate different open-source products to achieve
+                comparable results'.
+            </p>
+
+            <p>
+                You need to pick your poision with this one. But it's definitely something you should grapple with
+                earlier rather than later, because data migrations are hard work.
+            </p>
+
+            <h2>Do quality the right way</h2>
+
+            <p>
+                Nothing will upset a customer quite as much as having their time wasted. Buggy software. Slow software.
+                Outright breaking of features that are essential to their daily lives. Remember: Whatever it is that
+                you're selling, they care about it enough to pay you for it.
+            </p>
+
+            <p>
+                Companies grapple with quality control issues in different ways, but ultimately many land on risk
+                mitigation via excruciating business processes that slow their time to market and usually still fail to
+                satisfy.
+            </p>
+
+            <p>
+                David B. Black describes a
                 <a
-                    href="https://www.theguardian.com/australia-news/2022/dec/01/medibank-hackers-announce-case-closed-and-dump-huge-data-file-on-dark-web">
-                    Medibank hackers announce 'case closed' and dump huge data file on dark web
-                </a>
-            </li>
-            <li>
-                <a href="https://www.acma.gov.au/optus-data-breach">Optus data breach</a>
-            </li>
-            <li>
-                <a href="https://www.latitudefinancial.com.au/latitude-cyber-incident/">Latitude data breach</a>
-            </li>
-        </ul>
+                    href="https://www.blackliszt.com/2021/07/the-revolutionary-championchallenger-method-of-software-qa.html">
+                    Champion challenger</a>
+                methodology in his blog.
+            </p>
 
-        <p>
-            Government appetites for intervention, typically via privacy legislation, are only growing.
-        </p>
+            <p>
+                The core ideas are simple:
+            </p>
 
-        <p>
-            The European GDPR legislation was a watershed moment that has caught a great many companies wrongfooted. But
-            it should be considered a beginning rather than an end. Even if you're not within the scope of GDPR
-            specifically, there's nothing stopping other countries introducing comparable legislation. And technically
-            there's no reason that such laws can't be made <em>extraterritorial</em>.
-        </p>
+            <ul>
+                <li>Don't break things that already work.</li>
+                <li>
+                    For maximum productivity, ensure that your approach to testing is one in which new application code
+                    requires a minimal amount of additional testing code. David's blog suggests finding a way to drive
+                    testing via data.
+                </li>
+            </ul>
 
-        <p>
-            If you haven't already, you should give thought to how you might satisfy a subscriber's request to have
-            their data deleted. These requests aren't something you can just deflect, and non-compliance tends to
-            attract severe financial penalties.
-        </p>
+            <h2>Quality of Service</h2>
 
-        <p>
-            Do you have the tools to delete their data? Can you do it within the legislated deadline? Are any backups
-            'beyond use'? (i.e., backups that are used exclusively for restoration in emergency circumstances, to the
-            exclusion of all other purposes).
-        </p>
+            <p>
+                I mentioned the 80/20 rule earlier, and specifically the situation where your biggest customer will be
+                overwhelmingly responsible for your workload. If you've got a multi-tenanted system as described earlier
+                (i.e., multiple subscribers sharing a database) then this might lead to one customer negatively
+                impacting your other customers.
+            </p>
 
-        <p>
-            Similarly, data sovereignty is worth being mindful of. If you're relatively new then you might be running
-            your SaaS software out of a single location while allowing sign-ups from anywhere.
-        </p>
+            <p>
+                Microsoft have written a good article about this
+                <a
+                    href="https://learn.microsoft.com/en-us/azure/architecture/antipatterns/noisy-neighbor/noisy-neighbor">noisy
+                    neighbour problem</a>.
+            </p>
 
-        <p>
-            As you grow, consider how you might architect your software so that data belonging to customers in a given
-            jurisdiction can remain in that jurisdiction. You might not have to build it now, but it's worth keeping in
-            mind. The more successful you are, the more interest you'll likely attract from legislators and regulators.
-        </p>
+            <p>
+                The solution? Introduce rate limiting, and curb excess use.
+            </p>
 
-        <h2>Consider how you might horizontally scale your data platform</h2>
+            <p>
+                It's worth being transparent about what subscribers can and can't do. AWS provide insight into all of
+                the limits that apply to their various products and, while admittedly complicated, it'd be hard to claim
+                that you didn't know where you stood as a customer.
+            </p>
 
-        <h3>Sharding</h3>
+            <p>
+                On that note, Jenni Nadler has an excellent article concerning
+                <a href="https://wix-ux.com/when-life-gives-you-lemons-write-better-error-messages-46c5223e1a2f">error
+                    handling and error messages</a>.
+            </p>
 
-        <p>
-            With happy subscribers continuing their subscription, and new subscribers signing up all of the time, you'll
-            very likely outgrow your initial database.
-        </p>
-
-        <p>
-            Two scaling approaches are typically proffered:
-        </p>
-
-        <ul>
-            <li>Vertical scaling (use a bigger computer).</li>
-            <li>Horizontal scaling (use more computers).</li>
-        </ul>
-
-        <p>
-            The former is folly long-term because it's cost-prohibitive.
-        </p>
-
-        <p>
-            Some NoSQL products make claims about their scalability. I wouldn't presume to write about these products
-            because I haven't used many of them first-hand. Having said that, many of the claims strike me as dubious.
-            That, or the trade-offs made (in my opinion) aren't the right trade-offs.
-        </p>
-
-        <p>
-            But let's say you are using a relational database product. SQL Server, MariaDB, Postgres. And let's say that
-            you're working with a multi-tenant database (i.e., one database houses data belonging to 1-to-many
-            subscribers).
-        </p>
-
-        <p>
-            The earlier you introduce support for the concept of database sharding, the easier it'll be. The notion, put
-            simply, is that data belonging to Subscribers A and B lives in Database #1, while data belonging to
-            Subscriber C lives in Database #2.
-        </p>
-
-        <p>
-            You don't even need to have an actual second shard to do it. You could simply write your code such that it
-            <em>always</em> examines which subscriber the request belongs to and determines where data for the current
-            request lives <em>before attempting to access</em> that data. Essentially, structuring the code so that it
-            doesn't make assumptions about where a subscriber's data lives.
-        </p>
-
-        <h3>Data architecture</h3>
-
-        <p>
-            There are different schools of thought concerning exactly how data is split up.
-        </p>
-
-        <p>
-            In microservice architectures, microservices often 'own' their data. This means that that you have numerous
-            heterogeneous data stores, with each microservice theoretically exercising exclusive access to that data
-            store.
-        </p>
-
-        <p>
-            In monolithic architectures, you might have a singular application database. It is this singular database
-            that you would horizontally scale, giving you a homogenous fleet of databases.
-        </p>
-
-        <p>
-            I personally lean towards an architecture using a homogenous fleet of databases with the rule that any given
-            subscriber's data lives in <em>exactly one database shard</em> for one simple reason:
-        </p>
-
-        <p>
-            You can atomically transact across the entirety of the subscriber's data, and apply rules and constraints
-            that must hold true across the breadth of data.
-        </p>
-
-        <p>
-            But you also avoid all sorts of problems and challenges:
-        </p>
-
-        <ul>
-            <li>Distributed transactions, and recovering from failure during a distributed transaction.</li>
-            <li>Sagas.</li>
-            <li>Compensating transactions.</li>
-            <li>Answering business analysis questions that span multiple microservices.</li>
-            <li>
-                Restoring data in a disaster recovery situation, and subsequently having to reconcile restored data with
-                your other heterogenous databases that did not require restoring (i.e., because losing a database and
-                restoring it from backup will now mean it's minutes, or hours, behind the others).
-            </li>
-        </ul>
-
-        <h3>Licencing</h3>
-
-        <p>
-            If you're a growing business then licence fees are money out of your pocket.
-        </p>
-
-        <p>
-            In the case of Postgres versus Microsoft SQL Server, the former is $0.29 (USD) per hour in a single node
-            configuration while the latter is $1.044 (USD) per hour for Standard Edition.
-        </p>
-
-        <p>
-            If you use Enterprise Edition then that suddenly goes up to $2.262 (USD) per hour for that same single node.
-        </p>
-
-        <p>
-            So the Microsoft-based solution might cost you anywhere between 3 and 10 times more than the open-source
-            alternative.
-        </p>
-
-        <p>
-            Having said that, Microsoft have historically spruiked the notion of Total Cost of Ownership (TCO). Which is
-            their way of saying 'yes, our software costs you more, but the experience is more refined and you'll save a
-            <em>lot</em> of time not having to integrate different open-source products to achieve comparable results'.
-        </p>
-
-        <p>
-            You need to pick your poision with this one. But it's definitely something you should grapple with earlier
-            rather than later, because data migrations are hard work.
-        </p>
-
-        <h2>Do quality the right way</h2>
-
-        <p>
-            Nothing will upset a customer quite as much as having their time wasted. Buggy software. Slow software.
-            Outright breaking of features that are essential to their daily lives. Remember: Whatever it is that you're
-            selling, they care about it enough to pay you for it.
-        </p>
-
-        <p>
-            Companies grapple with quality control issues in different ways, but ultimately many land on risk mitigation
-            via excruciating business processes that slow their time to market and usually still fail to satisfy.
-        </p>
-
-        <p>
-            David B. Black describes a
-            <a
-                href="https://www.blackliszt.com/2021/07/the-revolutionary-championchallenger-method-of-software-qa.html">
-                Champion challenger</a>
-            methodology in his blog.
-        </p>
-
-        <p>
-            The core ideas are simple:
-        </p>
-
-        <ul>
-            <li>Don't break things that already work.</li>
-            <li>
-                For maximum productivity, ensure that your approach to testing is one in which new application code
-                requires a minimal amount of additional testing code. David's blog suggests finding a way to drive
-                testing via data.
-            </li>
-        </ul>
-
-        <h2>Quality of Service</h2>
-
-        <p>
-            I mentioned the 80/20 rule earlier, and specifically the situation where your biggest customer will be
-            overwhelmingly responsible for your workload. If you've got a multi-tenanted system as described earlier
-            (i.e., multiple subscribers sharing a database) then this might lead to one customer negatively impacting
-            your other customers.
-        </p>
-
-        <p>
-            Microsoft have written a good article about this
-            <a href="https://learn.microsoft.com/en-us/azure/architecture/antipatterns/noisy-neighbor/noisy-neighbor">noisy
-                neighbour problem</a>.
-        </p>
-
-        <p>
-            The solution? Introduce rate limiting, and curb excess use.
-        </p>
-
-        <p>
-            It's worth being transparent about what subscribers can and can't do. AWS provide insight into all of the
-            limits that apply to their various products and, while admittedly complicated, it'd be hard to claim that
-            you didn't know where you stood as a customer.
-        </p>
-
-        <p>
-            On that note, Jenni Nadler has an excellent article concerning
-            <a href="https://wix-ux.com/when-life-gives-you-lemons-write-better-error-messages-46c5223e1a2f">error
-                handling and error messages</a>.
-        </p>
-
-        <p>
-            And Paul Tarjan has authored an article on
-            <a href="https://stripe.com/blog/rate-limiters">rate limiters and load shedders</a>.
-        </p>
+            <p>
+                And Paul Tarjan has authored an article on
+                <a href="https://stripe.com/blog/rate-limiters">rate limiters and load shedders</a>.
+            </p>
+        </article>
     </main>
 </body>
 

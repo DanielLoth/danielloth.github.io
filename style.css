@@ -5,18 +5,32 @@ body {
     line-height: 1.5;
     margin: .5em auto;
     max-width: 750px;
-    padding: 0 .5em
+    padding: 0 .5em;
+}
+
+header {
+    margin: 1em 0;
+}
+
+nav {
+    display: flex;
+    gap: 1em;
+}
+
+h1 {
+    font-size: 2em;
+    margin-top: 0;
 }
 
 a {
     color: #0066cc;
-    padding: .25em 0
+    padding: .25em 0;
 }
 
 a:focus {
     outline-color: #ff8000;
     outline-style: solid;
-    outline-width: .2em
+    outline-width: .2em;
 }
 
 pre {
@@ -31,10 +45,10 @@ code {
 @media (prefers-color-scheme:dark) {
     body {
         background-color: #333;
-        color: #f8f8f8
+        color: #f8f8f8;
     }
 
     a {
-        color: #33adff
+        color: #33adff;
     }
 }
