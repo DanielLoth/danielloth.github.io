@@ -35,6 +35,7 @@ a:focus {
 
 pre {
     background-color: #e8e8e8;
+    overflow-x: auto;
     padding: 1em;
 }
 

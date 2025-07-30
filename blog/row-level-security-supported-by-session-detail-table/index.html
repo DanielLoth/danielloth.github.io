@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="author" content="Daniel Loth">
+    <meta name="description"
+        content="Use SQL Server ROWVERSION columns to ensure reliable timestamps, prevent lost updates, and maintain data integrity during concurrent modifications.">
+    <link rel="canonical" href="https://www.danloth.com/blog/sql-server-reliable-timestamps/">
+    <link rel="icon" href="/favicon.ico" sizes="any">
+    <link rel="manifest" href="/site.webmanifest">
+    <link rel="stylesheet" href="/style.css">
+    <title>Row-level security supported by session detail table | Daniel Loth</title>
+</head>
+
+<body>
+    <header>
+        <nav aria-label="Main navigation">
+            <a href="/">Home</a>
+            <a href="/blog/">Blog</a>
+        </nav>
+    </header>
+
+    <main>
+        <article>
+            <header>
+                <small>Published <time datetime="2023-11-25">25 November 2023</time></small>
+                <h1>Row-level security supported by session detail table</h1>
+            </header>
+
+            <p>
+                This blog post was inspired by a Reddit post. Redditor 'ArchSerpo' posted a question asking about
+                <a
+                    href="https://www.reddit.com/r/SQLServer/comments/18180lm/row_level_security_performance_when_predicate/">
+                    row-level security performance when predicate checks server or database roles</a>, and Redditor
+                'Prequalified' responded with a suggestion that we'll work through below.
+            </p>
+
+            <p>
+                I work with multi-tenant databases in my day job.
+            </p>
+
+            <p>
+                Multi-tenant databases using the shared-database shared-schema strategy (i.e., data belonging to
+                multiple tenants is resident within a single table) happen to be one of the key beneficiaries of
+                row-level security.
+            </p>
+
+            <p>
+                The other key beneficiary would be applications requiring stringent user access control within any given
+                tenancy. Think medical records that are held in confidence by a General Practice employing multiple
+                General Practitioners, for example, where your General Practitioner should be able to see your medical
+                history but other doctors working within the same building should not.
+            </p>
+
+            <p>
+                I suspect row-level security is still a relatively underused security control within SQL Server
+                databases, and part of that is very likely because of query performance issues such as the one that led
+                to this Reddit question.
+            </p>
+
+            <p>
+                So let's take a look.
+            </p>
+
+            <h2>SQL Server version</h2>
+
+            <p>
+                I'm working with SQL Server 2016 Developer Edition.
+            </p>
+
+            <pre><code>SELECT @@VERSION;</code></pre>
+
+            <pre><code>Microsoft SQL Server 2016 (SP2-GDR) (KB4583460) - 13.0.5108.50 (X64)
+May 20 2022 20:28:29
+Copyright (c) Microsoft Corporation  Developer Edition (64-bit) on
+Windows 10 Pro 10.0 &lt;X64&gt; (Build 19045: )</code></pre>
+
+            <h2>Large table setup</h2>
+
+            <p>
+                Let's start with a sufficiently large table. We'll put 20 million rows in there to really encourage SQL
+                Server to go parallel. To emulate a table with multi-tenant composition, we'll establish a tenant ID as
+                follows:
+            </p>
+
+            <ul>
+                <li>Generate a random <code>UNIQUEIDENTIFIER</code> using <code>NEWID()</code>.</li>
+                <li>Convert it to <code>BINARY(8)</code>.</li>
+                <li>Convert it once more to an <code>INT</code>.</li>
+                <li>Take the absolute value using the <code>ABS</code> function.</li>
+                <li>
+                    Take the modulo - we'll work with <code>32767</code> as that's the maximum positive value that is
+                    supported by the <code>SMALLINT</code> data type.
+                </li>
+                <li>
+                    Convert it to a non-null value - in a manner that ensures SQL Server understands it's a non-null
+                    value - using the <code>ISNULL</code> function.
+                </li>
+            </ul>
+
+            <pre><code>DROP TABLE IF EXISTS dbo.BigTable;
+GO
+
+WITH
+        lv0 AS (SELECT 0 g UNION ALL SELECT 0),
+        lv1 AS (SELECT 0 g FROM lv0 a CROSS JOIN lv0 b),
+        lv2 AS (SELECT 0 g FROM lv1 a CROSS JOIN lv1 b),
+        lv3 AS (SELECT 0 g FROM lv2 a CROSS JOIN lv2 b),
+        lv4 AS (SELECT 0 g FROM lv3 a CROSS JOIN lv3 b),
+        lv5 AS (SELECT 0 g FROM lv4 a CROSS JOIN lv4 b),
+        Number (Number) AS (SELECT ROW_NUMBER() OVER (ORDER BY (SELECT NULL)) FROM lv5)
+SELECT
+        ISNULL(ABS(CONVERT(INT, CONVERT(BINARY(8), NEWID()))) % 32767, 0) AS TenantId,
+        ISNULL(Number, 0) AS Number
+INTO    dbo.BigTable
+FROM    Number
+WHERE   Number &lt;= 20000000;
+
+GO
+
+ALTER TABLE dbo.BigTable
+ADD CONSTRAINT UC_BigTable_PK
+PRIMARY KEY CLUSTERED (TenantId, Number);</code></pre>
+
+            <p>
+                The successful creation of that primary key constraint <code>UC_BigTable_PK</code> on
+                <code>dbo.BigTable</code> implies that <code>TenantId</code> was in fact a non-null value. But we can
+                also examine the table's structure to confirm this:
+            </p>
+
+            <pre><code>EXEC sp_help 'dbo.BigTable';</code></pre>
+
+            <pre><code>Column_name Type   Computed Length Prec Scale Nullable
+----------- ------ -------- ------ ---- ----- --------
+TenantId    int    no       4      10   0     no
+Number      bigint no       8      19   0     no</code></pre>
+
+            <h2>Parallelism</h2>
+
+            <p>
+                Let's ensure we can in fact see evidence of parallel processing within the query plan.
+            </p>
+
+            <p>
+                We'll run a simple <code>COUNT(1)</code> query to do that, like so:
+            </p>
+
+            <pre><code>SET SHOWPLAN_TEXT ON;
+GO
+
+SELECT COUNT(1) AS NumRows
+FROM   dbo.BigTable;</code></pre>
+
+            <p>
+                And we can see this query plan which features parallel operators:
+            </p>
+
+            <pre><code>|--Compute Scalar(DEFINE:([Expr1002]=CONVERT_IMPLICIT(int,[globalagg1004],0)))
+  |--Stream Aggregate(DEFINE:([globalagg1004]=SUM([partialagg1003])))
+    |--Parallelism(Gather Streams)
+      |--Stream Aggregate(DEFINE:([partialagg1003]=Count(*)))
+        |--Clustered Index Scan(OBJECT:([Dan].[dbo].[BigTable].[UC_BigTable_PK]))</code></pre>
+
+            <p>
+                So far so good.
+            </p>
+
+            <p>
+                Now we'll quickly prove that checking server-level and database-level permissions does in fact undermine
+                the query planner's ability to produce a parallel query plan.
+            </p>
+
+            <p>
+                When checking for membership in a server role, we see a non-parallel query plan:
+            </p>
+
+            <pre><code>SET SHOWPLAN_TEXT ON;
+GO
+
+SELECT  COUNT(1) AS NumRows,
+        IS_SRVROLEMEMBER('sysadmin') as IsSysAdmin
+FROM    dbo.BigTable;</code></pre>
+
+            <pre><code>|--Compute Scalar(DEFINE:([Expr1003]=is_srvrolemember(N'sysadmin')))
+  |--Compute Scalar(DEFINE:([Expr1002]=CONVERT_IMPLICIT(int,[Expr1006],0)))
+    |--Stream Aggregate(DEFINE:([Expr1006]=Count(*)))
+      |--Clustered Index Scan(OBJECT:([Dan].[dbo].[BigTable].[UC_BigTable_PK]))</code></pre>
+
+            <p>
+                When checking for membership in a database role, we also see a non-parallel query plan:
+            </p>
+
+            <pre><code>SET SHOWPLAN_TEXT ON;
+GO
+
+SELECT  COUNT(1) AS NumRows,
+        IS_ROLEMEMBER('dbo') as IsDbo
+FROM    dbo.BigTable;</code></pre>
+
+            <pre><code>|--Compute Scalar(DEFINE:([Expr1003]=is_rolemember(N'dbo')))
+  |--Compute Scalar(DEFINE:([Expr1002]=CONVERT_IMPLICIT(int,[Expr1006],0)))
+    |--Stream Aggregate(DEFINE:([Expr1006]=Count(*)))
+      |--Clustered Index Scan(OBJECT:([Dan].[dbo].[BigTable].[UC_BigTable_PK]))</code></pre>
+
+            <p>
+                Visually that latter query plan looks like this:
+            </p>
+
+            <p>
+                <img src="non-parallel-query-plan-when-checking-dbo-role-membership.png"
+                    alt="Non-parallel query plan when checking for dbo role membership">
+            </p>
+
+            <p>
+                But the most straightforward indication is when we dig into the <code>SELECT</code> operator in the
+                query plan using the <code>Properties</code> window within SQL Server Management Studio (SSMS) to
+                observe the <code>NonParallelPlanReason</code> value, which is
+                <code>CouldNotGenerateValidParallelPlan</code>:
+            </p>
+
+            <p>
+                <img src="could-not-generate-parallel-plan.png"
+                    alt="Non-parallel query plan reason is observed to be CouldNotGenerateValidParallelPlan">
+            </p>
+
+            <p>
+                Erik Darling covers this quite well in his blog post
+                <a
+                    href="https://erikdarling.com/starting-sql-why-your-query-cant-go-parallel-scalar-functions-edition/">
+                    Starting SQL: Why Your SQL Server Query Can't Go Parallel, Scalar Functions Edition</a>.
+            </p>
+
+            <h2>Non-parallel row-level security predicate</h2>
+
+            <p>
+                The scalar function produces the same outcome when running within the context of a row-level security
+                predicate function.
+            </p>
+
+            <p>
+                If we create a security predicate function that uses a scalar function within, we'll get the same
+                <code>NonParallelPlanReason</code>.
+            </p>
+
+            <p>
+                Firstly we'll create our predicate function and policy:
+            </p>
+
+            <pre><code>SET SHOWPLAN_TEXT OFF;
+GO
+DROP SECURITY POLICY IF EXISTS dbo.SecurityPolicy;
+GO
+DROP FUNCTION IF EXISTS dbo.SecurityPredicate_fn;
+GO
+
+CREATE OR ALTER FUNCTION dbo.SecurityPredicate_fn(
+    @TenantId INT
+)
+RETURNS TABLE
+WITH SCHEMABINDING
+AS
+RETURN
+    SELECT  1 AS Result
+    WHERE   IS_ROLEMEMBER('dbo') = 1;
+
+GO
+
+CREATE SECURITY POLICY dbo.SecurityPolicy
+ADD FILTER PREDICATE dbo.SecurityPredicate_fn(TenantId)
+    ON dbo.BigTable
+WITH (STATE = ON, SCHEMABINDING = ON);
+GO</code></pre>
+
+            <p>
+                And then we'll re-run our <code>COUNT(1)</code> query as we did earlier.
+            </p>
+
+            <pre><code>SET SHOWPLAN_TEXT ON;
+GO
+
+SELECT  COUNT(1) AS NumRows
+FROM    dbo.BigTable;</code></pre>
+
+            <p>
+                When we observe the updated query plan we now see:
+            </p>
+
+            <ul>
+                <li>One new element: A <code>Filter</code> operation.</li>
+                <li>A lack of <code>Parallelism</code>-featuring query plan operators.</li>
+                <li>
+                    A <code>NonParallelPlanReason</code> with the value <code>CouldNotGenerateValidParallelPlan</code>.
+                </li>
+            </ul>
+
+            <pre><code>|--Compute Scalar(DEFINE:([Expr1003]=CONVERT_IMPLICIT(int,[Expr1006],0)))
+  |--Stream Aggregate(DEFINE:([Expr1006]=Count(*)))
+    |--Nested Loops(Left Semi Join)
+      |--Clustered Index Scan(OBJECT:([Dan].[dbo].[BigTable].[UC_BigTable_PK]))
+      |--Filter(WHERE:(STARTUP EXPR(is_rolemember(N'dbo')=(1))))
+        |--Constant Scan</code></pre>
+
+            <p>
+                <img src="query-plan-with-security-policy-filter.png"
+                    alt="Count query featuring filter operator from security policy application">
+            </p>
+
+            <p>
+                <img src="parallelism-and-its-gone.jpg" alt="South Park meme image - Parallelism... And it's gone">
+            </p>
+
+            <h2>Putting parallelism back on the table</h2>
+
+            <p>
+                Which brings us back to the idea in the Reddit post.
+            </p>
+
+            <p>
+                The solution proffered was a simple one: Derive the information of interest about the session (e.g.: the
+                database-role and server-role membership of the login used to establish the session), store it in a
+                table, and use that for the security predicate.
+            </p>
+
+            <p>
+                The poster suggested a temporary table, but I'm going to deviate a little here.
+            </p>
+
+            <p>
+                We'll confirm that <code>@@SPID</code> returns a <code>SMALLINT</code> value, and then create the table
+                so that it contains one row per conceivable <code>SPID</code>.
+            </p>
+
+            <pre><code>SET SHOWPLAN_TEXT OFF;
+GO
+SET STATISTICS XML, PROFILE OFF;
+GO
+
+SELECT
+        name,
+        is_nullable,
+        system_type_name,
+        max_length
+FROM
+        sys.dm_exec_describe_first_result_set(
+            'SELECT @@SPID AS spid',
+            NULL,
+            NULL
+        );</code></pre>
+
+            <pre><code>name is_nullable system_type_name max_length
+---- ----------- ---------------- ----------
+spid 0           smallint         2</code></pre>
+
+            <p>
+                Next, we'll create a <code>dbo.SessionDetail</code> table and fill it with one row per conceivable
+                session ID.
+            </p>
+
+            <pre><code>SET SHOWPLAN_TEXT OFF;
+GO
+DROP SECURITY POLICY IF EXISTS dbo.SecurityPolicy;
+GO
+DROP FUNCTION IF EXISTS SecurityPredicate_fn;
+GO
+DROP TABLE IF EXISTS dbo.SessionDetail;
+GO
+
+WITH
+        lv0 AS (SELECT 0 g UNION ALL SELECT 0),
+        lv1 AS (SELECT 0 g FROM lv0 a CROSS JOIN lv0 b),
+        lv2 AS (SELECT 0 g FROM lv1 a CROSS JOIN lv1 b),
+        lv3 AS (SELECT 0 g FROM lv2 a CROSS JOIN lv2 b),
+        lv4 AS (SELECT 0 g FROM lv3 a CROSS JOIN lv3 b),
+        lv5 AS (SELECT 0 g FROM lv4 a CROSS JOIN lv4 b),
+        Number (Number) AS (SELECT ROW_NUMBER() OVER (ORDER BY (SELECT NULL)) FROM lv5)
+SELECT
+        ISNULL(CONVERT(SMALLINT, Number), 0) AS SessionNumber,
+        ISNULL(CONVERT(BIT, 0), 0) AS CanReadAnyRow,
+        ISNULL(CONVERT(INT, @@SPID), 0) AS TenantId
+INTO    dbo.SessionDetail
+FROM    Number
+WHERE   Number <= 32767;
+
+GO
+
+ALTER TABLE dbo.SessionDetail
+ADD CONSTRAINT UC_SessionDetail_PK
+PRIMARY KEY CLUSTERED (SessionNumber);
+GO</code></pre>
+
+            <p>
+                We'll revise our security predicate:
+            </p>
+
+            <pre><code>SET SHOWPLAN_TEXT OFF;
+GO
+DROP SECURITY POLICY IF EXISTS dbo.SecurityPolicy;
+GO
+DROP FUNCTION IF EXISTS SecurityPredicate_fn;
+GO
+
+CREATE OR ALTER FUNCTION SecurityPredicate_fn(
+    @TenantId INT
+)
+RETURNS TABLE
+WITH SCHEMABINDING
+AS
+RETURN
+    SELECT  1 AS Result
+    FROM    dbo.SessionDetail
+    WHERE
+            SessionNumber = @@SPID AND
+            (
+                CanReadAnyRow = 1 OR
+                TenantId = @TenantId
+            );
+
+GO
+
+CREATE SECURITY POLICY dbo.SecurityPolicy
+ADD FILTER PREDICATE dbo.SecurityPredicate_fn(TenantId)
+    ON dbo.BigTable
+WITH (STATE = ON, SCHEMABINDING = ON);
+GO</code></pre>
+
+            <p>
+                We can set session information in the <code>dbo.SessionDetail</code> table for a given session like so:
+            </p>
+
+            <pre><code>SET SHOWPLAN_TEXT OFF;
+GO
+
+UPDATE  dbo.SessionDetail
+SET
+        TenantId = @@SPID,
+        CanReadAnyRow =
+            ISNULL(
+                CONVERT(BIT, IS_ROLEMEMBER('db_datareader')),
+                ISNULL(
+                    CONVERT(BIT, IS_ROLEMEMBER('dbo')),
+                    IS_SRVROLEMEMBER('sysadmin')
+                )
+            )
+WHERE
+        SessionNumber = @@SPID;</code></pre>
+
+            <p>
+                And re-run our <code>COUNT(1)</code> query to observe a parallel query plan:
+            </p>
+
+            <pre><code>SET SHOWPLAN_TEXT OFF;
+GO
+
+SELECT  COUNT(1) AS NumRows
+FROM    dbo.BigTable;</code></pre>
+
+            <pre><code>|--Compute Scalar(DEFINE:([Expr1005]=CONVERT_IMPLICIT(int,[globalagg1008],0)))
+  |--Stream Aggregate(DEFINE:([globalagg1008]=SUM([partialagg1007])))
+    |--Parallelism(Gather Streams)
+      |--Stream Aggregate(DEFINE:([partialagg1007]=Count(*)))
+        |--Nested Loops(Left Semi Join, WHERE:([Dan].[dbo].[SessionDetail].[IsSysAdmin]=(1) OR [Dan].[dbo].[SessionDetail].[IsDbo]=(1) OR [Dan].[dbo].[SessionDetail].[IsDbDataReader]=(1) OR [Dan].[dbo].[SessionDetail].[TenantId]=[Expr1006]))
+          |--Compute Scalar(DEFINE:([Expr1006]=CONVERT_IMPLICIT(int,[Dan].[dbo].[BigTable].[TenantId],0)))
+          |    |--Clustered Index Scan(OBJECT:([Dan].[dbo].[BigTable].[UC_BigTable_PK]))
+          |--Table Spool
+            |--Clustered Index Scan(OBJECT:([Dan].[dbo].[SessionDetail].[UC_SessionDetail_PK]))</code></pre>
+
+            <p>
+                At this point we once again have parallelism featuring in our query plan.
+            </p>
+
+            <p>
+                <img src="parallelism-is-back-on-the-menu.jpg"
+                    alt="Lord of the Rings meme image - Looks like parallelism is back on the menu boys">
+            </p>
+
+            <h2>Gotchas</h2>
+
+            <p>
+                One challenge with this approach - using a normal table such as <code>dbo.SessionDetail</code> instead
+                of a
+                temporary table - is that it's difficult to enforce the updating of the row within the table to reflect
+                the details of the current session for a given <code>@@SPID</code>.
+            </p>
+
+            <p>
+                If a <code>SPID</code> was used previously by a <code>sysadmin</code>, for example, and then re-used
+                later by a non-sysadmin who did not update the <code>dbo.SessionDetail</code> row then that subsequent
+                session would be able to read all rows from <code>dbo.BigTable</code>.
+            </p>
+
+            <p>
+                In a way, using the temporary table might actually be a good control when it comes to mitigating this
+                risk. After all, if the temporary table isn't created then it won't exist when the security predicate
+                runs. This would mean a hard-failure when SQL Server attempts to run the query due to an object (the
+                temporary table) not existing.
+            </p>
+
+            <p>
+                In other words, we would fail closed instead of silently failing open.
+            </p>
+
+            <p>
+                You could conceivably employ a logon trigger, but that might not be ideal if your SQL Server instance is
+                hosting numerous databases. But it is an option that could be made to work, and it would guarantee the
+                necessary update to <code>dbo.SessionDetail</code> that is required.
+            </p>
+
+            <p>
+                If you're operating in a database environment that doesn't deal in ad-hoc SQL queries, because
+                everything lives within Stored Procedures, then it gets a fair bit easier. You simply ensure that the
+                <code>dbo.SessionDetail</code> row update occurs as part of the stored procedure's preamble code
+                (alongside things like checking for invariants).
+            </p>
+        </article>
+    </main>
+</body>
