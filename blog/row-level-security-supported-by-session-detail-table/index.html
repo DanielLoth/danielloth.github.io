@@ -7,7 +7,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="author" content="Daniel Loth">
     <meta name="description"
-        content="Use SQL Server ROWVERSION columns to ensure reliable timestamps, prevent lost updates, and maintain data integrity during concurrent modifications.">
+        content="Learn how to improve SQL Server row-level security performance by avoiding scalar functions and using a session detail table to enable parallel query plans.">
     <link rel="canonical" href="https://www.danloth.com/blog/sql-server-reliable-timestamps/">
     <link rel="icon" href="/favicon.ico" sizes="any">
     <link rel="manifest" href="/site.webmanifest">
@@ -382,7 +382,7 @@ SELECT
         ISNULL(CONVERT(INT, @@SPID), 0) AS TenantId
 INTO    dbo.SessionDetail
 FROM    Number
-WHERE   Number <= 32767;
+WHERE   Number &lt;= 32767;
 
 GO
 
