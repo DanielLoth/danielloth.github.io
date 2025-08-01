@@ -52,4 +52,8 @@ code {
     a {
         color: #33adff;
     }
+
+    pre {
+        background-color: #474747;
+    }
 }
