@@ -1,0 +1,664 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="author" content="Daniel Loth">
+    <meta name="description"
+        content="Learn how to protect indexes so that you can safely use them in index hints in SQL Server.">
+    <link rel="canonical" href="https://www.danloth.com/blog/safely-using-index-hints-in-sql-server/">
+    <link rel="icon" href="/favicon.ico" sizes="any">
+    <link rel="manifest" href="/site.webmanifest">
+    <link rel="stylesheet" href="/style.css">
+    <title>Safely using index hints in SQL Server | Daniel Loth</title>
+</head>
+
+<body>
+    <header>
+        <nav aria-label="Main navigation">
+            <a href="/">Home</a>
+            <a href="/blog/">Blog</a>
+        </nav>
+    </header>
+
+    <main>
+        <article>
+            <header>
+                <small>Published <time datetime="2025-08-02">2 August 2025</time></small>
+                <h1>Safely using index hints in SQL Server</h1>
+            </header>
+
+            <p>
+                I've been fortunate enough to attend Brent Ozar's Fundamentals and Mastering classes over the last 8
+                months or so.
+            </p>
+
+            <p>
+                I've watched most of them now, and they're excellent. Brent is a great instructor in my
+                opinion. He keeps viewers engaged and interested with humour and sharp wit. But it's the content itself
+                that is outstanding in its quality. Everything is coherent and delivered in the right place at the right
+                time. I suspect Brent has agonised a great deal over perfecting the structure, content, and delivery.
+            </p>
+
+            <p>
+                One of the courses, Mastering Parameter Sniffing, covers some clever ways to tune queries while avoiding
+                index hints that refer to named indexes.
+            </p>
+            <p>
+                The reason given for avoiding index hints is a simple one: Queries with prescriptive index hints fail if
+                anything compromises the index.
+            </p>
+
+            <h2>The problem with naming indexes in index hints</h2>
+
+            <p>
+                The following example showcases the problem. Imagine that a well-meaning database administrator has
+                renamed the index so that it's clearer which table the index belongs to.
+            </p>
+
+            <pre><code>create table MyTable (
+	Id int not null,
+	Column1 int null,
+	constraint PK primary key (Id),
+	index IDX1 unique nonclustered (Column1)
+);
+
+select Id
+from MyTable with (forceseek (IDX1 (Column1)))
+where
+	Column1 = 1;
+
+exec sp_rename N'dbo.MyTable.IDX1', N'MyTable_IDX1', 'index';
+
+select Id
+from MyTable with (forceseek (IDX1 (Column1)))
+where
+	Column1 = 1;</code></pre>
+
+            <p>
+                The first execution of the <code>SELECT</code> query succeeds. The index named in the
+                <code>FORCESEEK</code> hint exists, and its key columns are ordered in such a way that SQL Server can
+                satisfy the query using a seek operation on the specified index.
+            </p>
+
+            <p>
+                The second execution after the rename isn't so lucky, and we get the following error:
+            </p>
+
+            <pre><code>Msg 308, Level 16, State 1, Line 24
+Index 'IDX1' on table 'MyTable' (specified in the FROM clause) does not exist.</code></pre>
+
+            <p>
+                Oops.
+            </p>
+
+            <p>
+                Of course, renaming the index isn't the only form of misadventure. There are two other scenarios
+                that might play out.
+            </p>
+
+            <ul>
+                <li>The index might be dropped.</li>
+                <li>
+                    The index might be created anew, with the key columns ordered differently or otherwise changed in
+                    such a way that SQL Server can no longer execute the query pursuant to the prescription.
+                </li>
+            </ul>
+
+            <p>
+                Brent isn't the only one with this concern. I have colleagues who have the same concerns, and I think
+                they're totally reasonable.
+            </p>
+
+            <p>
+                Having said that, the alternatives that Brent showcases in his course are designed to work on a single
+                database. The reason for this is that they marry elements of the schema (i.e., a query in this case) to
+                elements of the data (e.g.: a given outlier value that is the content stored within that schema).
+            </p>
+
+            <p>
+                This looks something like:
+            </p>
+
+            <pre><code>create procedure MyProcedure
+	@Column1 int
+as
+begin
+	select top 100 *
+	from MyTable
+	where
+		Column1 = @Column1
+	option (optimize for (@Column1 = 1));
+end</code></pre>
+
+            <p>
+                In the example, the query - which is inextricably tied to the underlying schema - features the literal
+                value <code>1</code>.
+            </p>
+
+            <p>
+                In essence, we have just elevated a part of the data so that it is now a part
+                of the schema. I like to think of it as a case of the tail wagging the dog.
+            </p>
+
+            <p>
+                This approach can work quite well in a database that is mature in terms of the shape of the data
+                (i.e., it has well-known outlier values, and these values will very likely remain as outliers into the
+                future, and these values are prominent within the statistics that are generated for the table).
+            </p>
+
+            <p>
+                However, the company I work for runs sharded multi-tenant databases.
+            </p>
+
+            <p>
+                I'm sure you could still adapt the approach to a sharded multi-tenant database environment. Maybe you'd
+                use code generation at run-time (i.e., dynamic SQL) to create your stored procedures (if you're using
+                stored procedures). In fact, Brent mentions that someone - <a
+                    href="https://sqlbits.com/speakers/Guy_Glantser">Guy Glantser</a> - has done just that with a view
+                to achieving better query plan estimates in spite of the limitations of SQL Server's statistics.
+            </p>
+
+            <p>
+                Unfortunately, if you're working with tools like <code>sqlpackage.exe</code> then runtime code
+                generation of the sort mentioned would pose its own logistical challenges.
+            </p>
+
+            <p>
+                But what if you could just protect your indexes and ensure their conformance instead?
+            </p>
+
+            <h2>Protecting your indexes</h2>
+
+            <p>
+                Let's jump straight into the code. The script that follows is idempotent, so you can run it and re-run
+                it multiple times safely. It will create a new SQL Server database named '<code>Experiment</code>' that
+                contains all necessary database objects. The script concludes with a number of test cases that
+                demonstrate how the indexes are protected.
+            </p>
+
+            <pre><code>use master;
+go
+set nocount, xact_abort on;
+go
+if @@trancount != 0 throw 50000, N'Open transaction.', 1;
+go
+
+if exists (
+	select 1
+	from sys.databases
+	where name = 'Experiment'
+)
+begin
+	alter database Experiment
+		set single_user
+		with rollback immediate;
+
+	drop database Experiment;
+end
+go
+
+drop database if exists Experiment;
+go
+
+create database Experiment;
+go
+
+use Experiment;
+go
+
+create schema DBA;
+go
+
+create table DBA.DesiredIndex (
+	RowNumber int identity(1,1) not null,
+	SchemaName sysname not null,
+	ObjectName sysname not null,
+	IndexName sysname not null,
+
+	constraint UC_DBA_DesiredIndex_PK
+	primary key clustered (RowNumber),
+
+	constraint U__DBA_DesiredIndex_AK
+	unique nonclustered (
+		SchemaName,
+		ObjectName,
+		IndexName
+	)
+);
+go
+
+create table DBA.DesiredIndexColumn (
+	RowNumber int identity(1,1) not null,
+	SchemaName sysname not null,
+	ObjectName sysname not null,
+	IndexName sysname not null,
+	ColumnName sysname not null,
+	KeyOrdinal int not null,
+	IsDescendingKey bit not null,
+	IsIncludedColumn bit not null,
+
+	constraint UC_DBA_DesiredIndexColumn_PK
+	primary key clustered (RowNumber),
+
+	constraint U__DBA_DesiredIndexColumn_AK
+	unique nonclustered (
+		SchemaName,
+		ObjectName,
+		IndexName,
+		ColumnName
+	),
+
+	constraint KeyOrdinal_IsValid_CK
+	check (KeyOrdinal >= 0)
+);
+go
+
+create unique nonclustered index U__DBA_DesiredIndexColumn_KeyColumnId
+	on DBA.DesiredIndexColumn (
+		SchemaName,
+		ObjectName,
+		IndexName,
+		KeyOrdinal
+	)
+	where (KeyOrdinal > 0);
+go
+
+create table dbo.MyTable (
+	Id int not null,
+	FillerColumn1 int null,
+	C1 int null,
+	FillerColumn2 int null,
+	C2 int null,
+	FillerColumn3 int null,
+
+	constraint PK
+	primary key clustered (Id),
+
+	index MySpecialIndex
+	nonclustered (C1, C2)
+);
+go
+
+create index MySpecialIndexWithIncludes
+	on dbo.MyTable (C2, C1)
+	include (FillerColumn1, FillerColumn2);
+go
+
+insert into DBA.DesiredIndex (
+	SchemaName,
+	ObjectName,
+	IndexName
+)
+values
+	('dbo', 'MyTable', 'MySpecialIndex');
+
+insert into DBA.DesiredIndexColumn (
+	SchemaName,
+	ObjectName,
+	IndexName,
+	ColumnName,
+	KeyOrdinal,
+	IsDescendingKey,
+	IsIncludedColumn
+)
+values
+	('dbo', 'MyTable', 'MySpecialIndex', 'C1', 1, 0, 0);
+
+insert into DBA.DesiredIndex (
+	SchemaName,
+	ObjectName,
+	IndexName
+)
+values
+	('dbo', 'MyTable', 'MySpecialIndexWithIncludes');
+
+insert into DBA.DesiredIndexColumn (
+	SchemaName,
+	ObjectName,
+	IndexName,
+	ColumnName,
+	KeyOrdinal,
+	IsDescendingKey,
+	IsIncludedColumn
+)
+values
+	('dbo', 'MyTable', 'MySpecialIndexWithIncludes', 'C2', 1, 0, 0),
+	('dbo', 'MyTable', 'MySpecialIndexWithIncludes', 'C1', 2, 0, 0),
+	('dbo', 'MyTable', 'MySpecialIndexWithIncludes', 'FillerColumn1', 0, 0, 1);
+
+go
+
+create or alter procedure DBA.EnsureIndexes
+	@OutputResultSet bit = 1,
+	@OutputLogStatements bit = 1
+as
+begin
+	set nocount, xact_abort on;
+
+	declare
+		@Outcome nvarchar(20),
+		@SchemaName sysname,
+		@ObjectName sysname,
+		@IndexName sysname,
+		@ColumnName sysname,
+		@KeyOrdinal int,
+		@IsIncludedColumn bit,
+		@IsDescendingKey bit,
+		@Msg nvarchar(max);
+
+	with
+		DesiredIndexColumns as (
+			select
+				i.SchemaName,
+				i.ObjectName,
+				i.IndexName,
+				ic.ColumnName,
+				ic.KeyOrdinal,
+				ic.IsIncludedColumn,
+				ic.IsDescendingKey
+			from DBA.DesiredIndex i
+			join DBA.DesiredIndexColumn ic on
+				i.SchemaName = ic.SchemaName and
+				i.ObjectName = ic.ObjectName and
+				i.IndexName = ic.IndexName
+		),
+		ActualIndexColumns as (
+			select
+				object_schema_name(i.object_id) as SchemaName,
+				object_name(i.object_id) as ObjectName,
+				i.object_id as ObjectId,
+				i.name as IndexName,
+				i.index_id as IndexId,
+				i.type as IndexType,
+				i.is_unique as IsUnique,
+				i.is_primary_key as IsPrimaryKey,
+				i.is_unique_constraint as IsUniqueConstraint,
+				col_name(ic.object_id, ic.column_id) as ColumnName,
+				ic.index_column_id as IndexColumnId,
+				ic.column_id as ObjectColumnId,
+				ic.key_ordinal as KeyOrdinal,
+				ic.is_descending_key as IsDescendingKey,
+				ic.is_included_column as IsIncludedColumn
+			from sys.indexes i
+			join sys.index_columns ic on
+				i.object_id = ic.object_id and
+				i.index_id = ic.index_id
+			where
+				exists (
+					select 1
+					from sys.objects o
+					where
+						i.object_id = o.object_id and
+						o.is_ms_shipped = 0
+				)
+		)
+	select
+		'ERROR' as Outcome,
+		d.SchemaName,
+		d.ObjectName,
+		d.IndexName,
+		d.ColumnName,
+		d.KeyOrdinal,
+		d.IsIncludedColumn,
+		d.IsDescendingKey
+	into #EnsureIndexes_Error
+	from DesiredIndexColumns d
+	where
+		not exists (
+			select 1
+			from ActualIndexColumns a
+			where
+				a.SchemaName = d.SchemaName and
+				a.ObjectName = d.ObjectName and
+				a.IndexName = d.IndexName and
+				a.ColumnName = d.ColumnName and
+				a.KeyOrdinal = d.KeyOrdinal and
+				a.IsIncludedColumn = d.IsIncludedColumn and
+				a.IsDescendingKey = d.IsDescendingKey
+		);
+
+	if exists (
+		select 1
+		from #EnsureIndexes_Error
+	)
+	begin
+		if @OutputResultSet = 1
+		begin
+			select *
+			from #EnsureIndexes_Error;
+		end
+
+		if @OutputLogStatements = 1
+		begin
+			declare ErrorCursor cursor
+				fast_forward local for
+				select
+					Outcome,
+					SchemaName,
+					ObjectName,
+					IndexName,
+					ColumnName,
+					KeyOrdinal,
+					IsIncludedColumn,
+					IsDescendingKey
+				from #EnsureIndexes_Error;
+
+			open ErrorCursor;
+
+			fetch next from ErrorCursor into
+				@Outcome,
+				@SchemaName,
+				@ObjectName,
+				@IndexName,
+				@ColumnName,
+				@KeyOrdinal,
+				@IsIncludedColumn,
+				@IsDescendingKey;
+
+			while @@fetch_status = 0
+			begin
+				set @Msg = concat(
+					'ERROR: Index or its column does ',
+					'not match desired state. ',
+					'Object=',
+					quotename(@SchemaName),
+					'.',
+					quotename(@ObjectName),
+					' - ',
+					'Index=',
+					quotename(@IndexName),
+					' - ',
+					'Column=',
+					quotename(@ColumnName)
+				);
+
+				raiserror(@Msg, 0, 1) with nowait;
+
+				fetch next from ErrorCursor into
+					@Outcome,
+					@SchemaName,
+					@ObjectName,
+					@IndexName,
+					@ColumnName,
+					@KeyOrdinal,
+					@IsIncludedColumn,
+					@IsDescendingKey;
+			end
+		end
+
+		set @Msg = concat(
+			'One or more desired indexes ',
+			'either did not exist or did not ',
+			'match the desired state.'
+		);
+
+		throw 50000, @Msg, 1;
+	end
+end
+
+go
+
+exec DBA.EnsureIndexes;
+go
+
+create or alter trigger IndexProtection
+on database
+for
+	create_index,
+	drop_index,
+	rename
+as
+begin
+	set nocount, xact_abort on;
+
+	exec DBA.EnsureIndexes;
+end
+go
+
+begin try
+	/*
+	This will fail because there will no longer be
+	an index with the given name and key column
+	structure.
+	*/
+	exec sp_rename
+		@objname = N'dbo.MyTable.MySpecialIndex',
+		@newname = N'MySpecialIndex1',
+		@objtype = 'index';
+end try
+begin catch
+	if @@trancount != 0 rollback;
+	print 'BLOCKED: Rename index.';
+end catch
+go
+
+begin try
+	-- This will fail: The index will no longer exist.
+	drop index MySpecialIndex
+		on dbo.MyTable;
+end try
+begin catch
+	print 'BLOCKED: Drop index.';
+end catch
+go
+
+begin try
+	-- This will fail: Key column order changed.
+	create index MySpecialIndex
+		on dbo.MyTable (Id, C1)
+		with (drop_existing = on);
+end try
+begin catch
+	print 'BLOCKED: Recreate index.';
+end catch
+go
+
+begin try
+	/*
+	This will fail.
+	Prescribed include column is no longer included.
+	*/
+	create index MySpecialIndexWithIncludes
+		on dbo.MyTable (C2, C1)
+		include (FillerColumn2)
+		with (drop_existing = on);
+end try
+begin catch
+	print 'BLOCKED: Recreate index.';
+end catch
+go
+
+/*
+This will work.
+It still meets desired state.
+*/
+create index MySpecialIndex
+	on dbo.MyTable (C1)
+	with (drop_existing = on);
+go
+
+/*
+This will work.
+Desired state still met (C1 as leading column).
+*/
+create index MySpecialIndex
+	on dbo.MyTable (C1, C2)
+	with (drop_existing = on);
+go
+
+/*
+This will work.
+Desired state still met (C1 as leading column).
+*/
+create index MySpecialIndex
+	on dbo.MyTable (C1)
+	include (C2)
+	with (drop_existing = on);
+go
+
+/*
+This will work.
+Prescribed include column still present.
+Non-prescribed include column excluded.
+*/
+create index MySpecialIndexWithIncludes
+	on dbo.MyTable (C2, C1)
+	include (FillerColumn1)
+	with (drop_existing = on);
+go</code></pre>
+
+            <p>
+                The code above relies on several key objects:
+            </p>
+
+            <ul>
+                <li>A stored procedure named <code>DBA.EnsureIndexes</code>.</li>
+                <li>
+                    A database trigger named <code>IndexProtection</code> executes the stored procedure when an index is
+                    created, dropped, or an object is renamed.
+                </li>
+                <li>
+                    Two tables - <code>DBA.DesiredIndex</code> and <code>DBA.DesiredIndexColumn</code> - which contain
+                    data describing the desired state of our indexes.
+                </li>
+            </ul>
+
+            <p>
+                When executed, the stored procedure examines SQL Server's metadata catalogues along with the desired
+                state and, in the event that the indexes described by the metadata are deemed non-conformant, throws an
+                exception.
+            </p>
+
+            <p>
+                This works because the database trigger runs within the context of the Data Definition Language (DDL)
+                statement that is modifying the index.
+                Throwing an exception leads to the rolling back of that statement as SQL Server's DDL statements are
+                transactional.
+            </p>
+
+            <p>
+                There might be a few 'gotchas', and if you intend to use the code then you should test it to ensure that
+                it is fit for purpose in your specific environment.
+            </p>
+
+            <p>
+                For example, the <code>sqlpackage.exe</code> tool's <code>publish</code> command will disable and later
+                re-enable DDL triggers such as the one in the code above. So you'll need to specify a value of
+                <code>False</code> for the <code>DisableAndReenableDdlTriggers</code> parameter. Otherwise, you'll find
+                that the protection mechanism is essentially disarmed every time you use <code>sqlpackage</code> to
+                perform a DACPAC release.
+            </p>
+
+            <p>
+                Anyway, that's all for now. Thank you for reading. If you want more help with this then you can contact
+                me via email at <a href="mailto:danlothblog@gmail.com">danlothblog@gmail.com</a> or <a
+                    href="https://www.linkedin.com/in/daniel-loth/">LinkedIn</a>.
+            </p>
+        </article>
+    </main>
+</body>
+
+</html>
