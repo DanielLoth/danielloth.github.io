@@ -5,13 +5,21 @@ $ProgressPreference = "SilentlyContinue"
 
 $S4 = "    "
 $S8 = $S4 + $S4
+
 $CssLines = Get-Content -Path "style.css"
 
-for ($i = 0; $i -lt $CssLines.Length; $i++) {
-    $CssLines[$i] = "$($S8)$($CssLines[$i])"
+if ($CssLines -is [array]) {
+    for ($i = 0; $i -lt $CssLines.Length; $i++) {
+        $CssLines[$i] = "$($S8)$($CssLines[$i])"
+    }
+    $Css = $CssLines -join "`r`n"
+}
+else {
+    $CssLines = "$($S8)$($CssLines)"
+    $Css = $CssLines
 }
 
-$Css = $CssLines -join "`r`n"
+
 
 $Fragment = "<!-- CSS -->
 $($S4)<style>
@@ -20,8 +28,8 @@ $($S4)</style>
 $($S4)<!-- End CSS -->"
 
 $HtmlFiles = Get-ChildItem -Path $PSScriptRoot -Recurse `
-    | Where-Object -FilterScript { $_.Name -like '*.html' } `
-    | Where-Object -FilterScript { $_.FullName -notlike "*_layouts*" }
+| Where-Object -FilterScript { $_.Name -like '*.html' } `
+| Where-Object -FilterScript { $_.FullName -notlike "*_layouts*" }
 
 foreach ($HtmlFile in $HtmlFiles) {
     $Html = Get-Content -Path $HtmlFile.FullName -Raw
