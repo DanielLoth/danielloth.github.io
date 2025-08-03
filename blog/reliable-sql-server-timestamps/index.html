@@ -6,12 +6,75 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="author" content="Daniel Loth">
-    <meta name="description" content="Use SQL Server ROWVERSION columns to ensure reliable timestamps, prevent lost updates, and maintain data integrity during concurrent modifications." />
+    <meta name="description"
+        content="Use SQL Server ROWVERSION columns to ensure reliable timestamps, prevent lost updates, and maintain data integrity during concurrent modifications." />
     <link rel="canonical" href="https://www.danloth.com/blog/sql-server-reliable-timestamps/">
     <link rel="icon" href="/favicon.ico" sizes="any">
     <link rel="manifest" href="/site.webmanifest">
-    <link rel="stylesheet" href="/style.css">
     <title>Reliable SQL Server timestamps | Daniel Loth</title>
+    <!-- CSS -->
+    <style>
+        body {
+            background-color: #f8f8f8;
+            color: #333;
+            font-family: Arial, Helvetica, sans-serif;
+            line-height: 1.5;
+            margin: .5em auto;
+            max-width: 750px;
+            padding: 0 .5em;
+        }
+
+        header {
+            margin: 1em 0;
+        }
+
+        nav {
+            display: flex;
+            gap: 1em;
+        }
+
+        h1 {
+            margin-block: 0.67em;
+            font-size: 2em;
+        }
+
+        a {
+            color: #0066cc;
+            padding: .25em 0;
+        }
+
+        a:focus {
+            outline-color: #ff8000;
+            outline-style: solid;
+            outline-width: .2em;
+        }
+
+        pre {
+            background-color: #e8e8e8;
+            overflow-x: auto;
+            padding: 1em;
+        }
+
+        code {
+            font-family: "Monaco", monospace;
+        }
+
+        @media (prefers-color-scheme:dark) {
+            body {
+                background-color: #333;
+                color: #f8f8f8;
+            }
+
+            a {
+                color: #33adff;
+            }
+
+            pre {
+                background-color: #474747;
+            }
+        }
+    </style>
+    <!-- End CSS -->
 </head>
 
 <body>
